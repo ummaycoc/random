@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import itertools
+import re
+import sys
 from collections import defaultdict
 
 def complement(key):
@@ -36,6 +38,36 @@ for digits in itertools.permutations(range(10), 5):
     for k, p in ops.items():
       if p(*nums):
         results[key][k].add(nums)
+
+def parseEqn(eqn):
+  if not re.match(r'^\d+[-+*/]\d+[-+*/]\d+=\d+$', re.sub(r'\s', '', eqn)):
+    raise Exception('Invalid equation: ' + eqn)
+  digits = frozenset(map(eval, re.findall(r'\d', eqn)))
+  numbers = tuple(map(eval, re.findall(r'\d+', eqn)))
+  ops = tuple(re.findall(r'[-+*/]', eqn))
+  if len(digits) < 5:
+    raise Exception('Invalid equation (not enough digits): ' + eqn)
+  elif len(digits) > 5:
+    raise Exception('Invalid equation (too many digits): ' + eqn)
+  if len(set(digits)) != 5:
+    raise Exception('Invalid equation (digits not unique): ' + eqn)
+  if len(set(ops)) != 2:
+    raise Exception('Invalid equation (operations not unique): ' + eqn)
+  return (digits, concrete(numbers, ops))
+
+if len(sys.argv) > 1:
+  for (l, lc) in map(parseEqn, sys.argv[1:]):
+    r = frozenset(range(10)) - l
+    cvalid = [
+      o for o in ops.keys()
+      if (not (set(o) & set(lc))) and o in results[r]
+    ]
+    rs = [concrete(rc, v) for v in cvalid for rc in results[r][v]]
+    print '   %s' % lc
+    print '===%s===' % ('=' * len(lc))
+    print '\n'.join('   ' + rr for rr in rs)
+    print ''
+  exit(0)
 
 total = 0
 for l in results:
