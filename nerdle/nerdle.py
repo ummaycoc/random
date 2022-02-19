@@ -42,8 +42,8 @@ for digits in itertools.permutations(range(10), 5):
 def parseEqn(eqn):
   if not re.match(r'^\d+[-+*/]\d+[-+*/]\d+=\d+$', re.sub(r'\s', '', eqn)):
     raise Exception('Invalid equation: ' + eqn)
-  digits = frozenset(map(eval, re.findall(r'\d', eqn)))
-  numbers = tuple(map(eval, re.findall(r'\d+', eqn)))
+  digits = frozenset(map(int, re.findall(r'\d', eqn)))
+  numbers = tuple(map(int, re.findall(r'\d+', eqn)))
   ops = tuple(re.findall(r'[-+*/]', eqn))
   if len(digits) < 5:
     raise Exception('Invalid equation (not enough digits): ' + eqn)
