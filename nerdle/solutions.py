@@ -156,7 +156,7 @@ def compile_working(working):
 def grep_working(working, selects, rejects):
   """
   Generate criteria-matching equations from op to eq-list dict of working equations.
-  Selects and rejects should be dicts of positions to strings of (un)acceptable characters.
+  Selects and rejects should be dicts of positions to sequences of (un)acceptable characters.
   """
   for eq in compile_working(working):
     if not all(eq[pos] in sel for pos, sel in selects.items()):
@@ -175,7 +175,7 @@ def generate(digits, ops, permuteOps, lengths, selects, rejects):
   - selects: dict of positions to a string of acceptable characters.
   - rejects: dict of positions to a string of unacceptable characters.
   Ex:
-    generate([1, 2, 3, 4, 6], '*', False, {2: [3]}, {4: '='}, {0: '12', 7: '23'})
+    generate([1, 2, 3, 4, 6], '*', False, {2: [3]}, {4: '='}, {0: '12', 7: ['2', '3']})
   """
   permuted = partitions_permuted(digits, 2 + len(ops))
   lengthed = filter_lengths(permuted, lengths)
@@ -189,34 +189,27 @@ def decimal_digit(d):
   err = 'Invalid digit ' + d + ' -- must be given single digits for positional arguments.'
   raise argparse.ArgumentTypeError(err)
 
-def num_length(s):
-  if not re.match('[1-4]+:[1-4]+$', s):
-    err = 'Invalid length, must be INDICES:LENGTHS.'
+def parse_indexed_pair(s, name, pattern, display_format, rmap=None):
+  if not re.match(pattern, s):
+    err = 'Invalid %s, must be %s.' % (name, display_format)
     raise argparse.ArgumentTypeError(err)
-  indices, lengths = s.split(':')
-  if len(indices) != len(lengths):
-    err = 'Invalid length, must have as many INDICES as LENGTHS.'
+  left, right = s.split(':')
+  if len(left) != len(right):
+    lname, rname = display_format.split(':')
+    err = 'Invalid %s, must have as many %s as %s.' % (name, lname, rname)
     raise argparse.ArgumentTypeError(err)
-  indices, lengths = map(int, indices), map(int, lengths)
-  indices = map(lambda i: i - 1, indices)
-  result = {i: [] for i in indices}
-  for (i, l) in zip(indices, lengths):
-    result[i].append(l)
+  left, right = map(int, left), map(rmap or (lambda k: k), right)
+  left = map(lambda l: l - 1, left)
+  result = {l: [] for l in left}
+  for (l, r) in zip(left, right):
+    result[l].append(r)
   return result
 
+def num_length(s):
+  return parse_indexed_pair(s, 'length', '[1-4]+:[1-4]+$', 'INDICES:LENGTHS', int)
+
 def search_pattern(p):
-  if not re.match('[1-8]+:[-+*/=0-9]+', p):
-    err = 'Invalid pattern format, pattern must be POSITIONS:CHARACTERS.'
-    raise argparse.ArgumentTypeError(err)
-  pos, chars = p.split(':')
-  if len(pos) != len(chars):
-    err = 'Invalid pattern format, pattern must have equal number of POSITIONS and CHARACTERS.'
-    raise argparse.ArgumentTypeError(err)
-  pos = map(lambda k: int(k) - 1, pos)
-  result = {k: '' for k in set(pos)}
-  for k, v in zip(pos, chars):
-    result[k] += v
-  return result
+  return parse_indexed_pair(p, 'selection/rejection pattern', '[1-8]+:[-+*/=0-9]+$', 'POSITIONS:CHARACTERS')
 
 parser = argparse.ArgumentParser(description='Solving nerdle constraints.')
 parser.add_argument(
@@ -273,7 +266,7 @@ results = generate(
   args.digits,
   args.op1 + (args.op2 or ''),
   args.unordered,
-  args.length or [],
+  args.length or {},
   args.select or {},
   args.reject or {}
 )
