@@ -67,6 +67,12 @@ def partitions(d, r):
     for f in apply_int_partition(d, p):
       yield f
 
+def unique_permutations(seq):
+  """
+  Returns the set from the permutations of a sequence.
+  """
+  return set(permutations(seq))
+
 def partitions_permuted(d, r):
   """
   Generate r-tuple of tuples drawn from d (and covering all of d) respecting order.
@@ -79,7 +85,7 @@ def partitions_permuted(d, r):
     ((1,), (1,), (3,2)); ...
   """
   for p in partitions(d, r):
-    for item in product(*map(permutations, p)):
+    for item in product(*map(unique_permutations, p)):
       yield item
 
 def filter_lengths(seq, filters):
